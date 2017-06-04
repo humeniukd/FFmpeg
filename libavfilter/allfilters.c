@@ -126,6 +126,7 @@ static void register_all(void)
     REGISTER_FILTER(VIBRATO,        vibrato,        af);
     REGISTER_FILTER(VOLUME,         volume,         af);
     REGISTER_FILTER(VOLUMEDETECT,   volumedetect,   af);
+    REGISTER_FILTER(DUMPWAVE,       dumpwave,       af);
 
     REGISTER_FILTER(AEVALSRC,       aevalsrc,       asrc);
     REGISTER_FILTER(ANOISESRC,      anoisesrc,      asrc);
