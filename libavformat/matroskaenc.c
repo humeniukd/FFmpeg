@@ -839,7 +839,7 @@ static int mkv_write_codecprivate(AVFormatContext *s, AVIOContext *pb,
                 ret = AVERROR(EINVAL);
             }
 
-            ff_put_bmp_header(dyn_cp, par, ff_codec_bmp_tags, 0, 0);
+            ff_put_bmp_header(dyn_cp, par, 0, 0);
         }
     } else if (par->codec_type == AVMEDIA_TYPE_AUDIO) {
         unsigned int tag;
@@ -1483,8 +1483,10 @@ static int mkv_write_chapters(AVFormatContext *s)
     if (ret < 0) return ret;
 
     editionentry = start_ebml_master(dyn_cp, MATROSKA_ID_EDITIONENTRY, 0);
-    put_ebml_uint(dyn_cp, MATROSKA_ID_EDITIONFLAGDEFAULT, 1);
-    put_ebml_uint(dyn_cp, MATROSKA_ID_EDITIONFLAGHIDDEN , 0);
+    if (mkv->mode != MODE_WEBM) {
+        put_ebml_uint(dyn_cp, MATROSKA_ID_EDITIONFLAGDEFAULT, 1);
+        put_ebml_uint(dyn_cp, MATROSKA_ID_EDITIONFLAGHIDDEN , 0);
+    }
     for (i = 0; i < s->nb_chapters; i++) {
         ebml_master chapteratom, chapterdisplay;
         AVChapter *c     = s->chapters[i];
@@ -1502,8 +1504,10 @@ static int mkv_write_chapters(AVFormatContext *s)
         put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERUID, c->id + mkv->chapter_id_offset);
         put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERTIMESTART, chapterstart);
         put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERTIMEEND, chapterend);
-        put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERFLAGHIDDEN , 0);
-        put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERFLAGENABLED, 1);
+        if (mkv->mode != MODE_WEBM) {
+            put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERFLAGHIDDEN , 0);
+            put_ebml_uint(dyn_cp, MATROSKA_ID_CHAPTERFLAGENABLED, 1);
+        }
         if ((t = av_dict_get(c->metadata, "title", NULL, 0))) {
             chapterdisplay = start_ebml_master(dyn_cp, MATROSKA_ID_CHAPTERDISPLAY, 0);
             put_ebml_string(dyn_cp, MATROSKA_ID_CHAPSTRING, t->value);
@@ -1677,17 +1681,20 @@ static int mkv_write_tags(AVFormatContext *s)
         }
     }
 
-    for (i = 0; i < s->nb_chapters; i++) {
-        AVChapter *ch = s->chapters[i];
+    if (mkv->mode != MODE_WEBM) {
+        for (i = 0; i < s->nb_chapters; i++) {
+            AVChapter *ch = s->chapters[i];
 
-        if (!mkv_check_tag(ch->metadata, MATROSKA_ID_TAGTARGETS_CHAPTERUID))
-            continue;
+            if (!mkv_check_tag(ch->metadata, MATROSKA_ID_TAGTARGETS_CHAPTERUID))
+                continue;
 
-        ret = mkv_write_tag(s, ch->metadata, MATROSKA_ID_TAGTARGETS_CHAPTERUID, ch->id + mkv->chapter_id_offset, &mkv->tags);
-        if (ret < 0) return ret;
+            ret = mkv_write_tag(s, ch->metadata, MATROSKA_ID_TAGTARGETS_CHAPTERUID, ch->id + mkv->chapter_id_offset, &mkv->tags);
+            if (ret < 0)
+                return ret;
+        }
     }
 
-    if (mkv->have_attachments) {
+    if (mkv->have_attachments && mkv->mode != MODE_WEBM) {
         for (i = 0; i < mkv->attachments->num_entries; i++) {
             mkv_attachment *attachment = &mkv->attachments->entries[i];
             AVStream *st = s->streams[attachment->stream_idx];
@@ -1976,19 +1983,19 @@ static int mkv_write_header(AVFormatContext *s)
     for (i = 0; i < s->nb_chapters; i++)
         mkv->chapter_id_offset = FFMAX(mkv->chapter_id_offset, 1LL - s->chapters[i]->id);
 
-    if (mkv->mode != MODE_WEBM) {
-        ret = mkv_write_chapters(s);
-        if (ret < 0)
-            goto fail;
+    ret = mkv_write_chapters(s);
+    if (ret < 0)
+        goto fail;
 
+    if (mkv->mode != MODE_WEBM) {
         ret = mkv_write_attachments(s);
         if (ret < 0)
             goto fail;
-
-        ret = mkv_write_tags(s);
-        if (ret < 0)
-            goto fail;
     }
+
+    ret = mkv_write_tags(s);
+    if (ret < 0)
+        goto fail;
 
     if (!(s->pb->seekable & AVIO_SEEKABLE_NORMAL) && !mkv->is_live)
         mkv_write_seekhead(pb, mkv);
@@ -2105,6 +2112,8 @@ static void mkv_write_block(AVFormatContext *s, AVIOContext *pb,
     int64_t discard_padding = 0;
     uint8_t track_number = (mkv->is_dash ? mkv->dash_track_number : (pkt->stream_index + 1));
     ebml_master block_group, block_additions, block_more;
+
+    ts += mkv->tracks[pkt->stream_index].ts_offset;
 
     av_log(s, AV_LOG_DEBUG, "Writing block at offset %" PRIu64 ", size %d, "
            "pts %" PRId64 ", dts %" PRId64 ", duration %" PRId64 ", keyframe %d\n",
@@ -2525,11 +2534,10 @@ static int mkv_write_trailer(AVFormatContext *s)
         end_ebml_master_crc32(pb, &mkv->dyn_bc, mkv, mkv->cluster);
     }
 
-    if (mkv->mode != MODE_WEBM) {
-        ret = mkv_write_chapters(s);
-        if (ret < 0)
-            return ret;
-    }
+    ret = mkv_write_chapters(s);
+    if (ret < 0)
+        return ret;
+
 
     if ((pb->seekable & AVIO_SEEKABLE_NORMAL) && !mkv->is_live) {
         if (mkv->cues->num_entries) {

@@ -128,6 +128,7 @@ static const AVCodecDefault defaults[] = {
     { "qcomp", "-1" },
     { "g", "250" },
     { "bf", "0" },
+    { "refs", "0" },
     { NULL },
 };
 
@@ -152,6 +153,8 @@ AVCodec ff_nvenc_hevc_encoder = {
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_HEVC,
     .init           = nvenc_old_init,
+    .send_frame     = ff_nvenc_send_frame,
+    .receive_packet = ff_nvenc_receive_packet,
     .encode2        = ff_nvenc_encode_frame,
     .close          = ff_nvenc_encode_close,
     .priv_data_size = sizeof(NvencContext),
@@ -177,6 +180,8 @@ AVCodec ff_hevc_nvenc_encoder = {
     .type           = AVMEDIA_TYPE_VIDEO,
     .id             = AV_CODEC_ID_HEVC,
     .init           = ff_nvenc_encode_init,
+    .send_frame     = ff_nvenc_send_frame,
+    .receive_packet = ff_nvenc_receive_packet,
     .encode2        = ff_nvenc_encode_frame,
     .close          = ff_nvenc_encode_close,
     .priv_data_size = sizeof(NvencContext),

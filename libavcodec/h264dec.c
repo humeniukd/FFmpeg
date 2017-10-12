@@ -55,8 +55,6 @@
 #include "thread.h"
 #include "vdpau_compat.h"
 
-static int h264_decode_end(AVCodecContext *avctx);
-
 const uint16_t ff_h264_mb_sizes[4] = { 256, 384, 512, 768 };
 
 int avpriv_h264_has_num_reorder_frames(AVCodecContext *avctx)
@@ -501,7 +499,6 @@ void ff_h264_flush_change(H264Context *h)
     ff_h264_unref_picture(h, &h->last_pic_for_ec);
 
     h->first_field = 0;
-    ff_h264_sei_uninit(&h->sei);
     h->recovery_frame = -1;
     h->frame_recovered = 0;
     h->current_slice = 0;
@@ -517,6 +514,7 @@ static void flush_dpb(AVCodecContext *avctx)
     memset(h->delayed_pic, 0, sizeof(h->delayed_pic));
 
     ff_h264_flush_change(h);
+    ff_h264_sei_uninit(&h->sei);
 
     for (i = 0; i < H264_MAX_PICTURE_COUNT; i++)
         ff_h264_unref_picture(h, &h->DPB[i]);
