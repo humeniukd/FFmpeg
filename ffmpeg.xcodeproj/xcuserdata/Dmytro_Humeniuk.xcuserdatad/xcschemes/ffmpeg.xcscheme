@@ -10,7 +10,7 @@
             ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
             <ActionContent
                title = "Run Script"
-               scriptText = "$PROJECT_DIR/configure --disable-optimizations --prefix=&quot;$PROJECT_DIR&quot; \&#10;--extra-cflags=&quot;-g -I$PROJECT_DIR/include&quot; --extra-ldflags=&quot;-L$PROJECT_DIR/lib&quot; \&#10;--bindir=&quot;$PROJECT_DIR/bin&quot; --extra-libs=&quot;-lmp3lame&quot; --enable-gpl --enable-shared --enable-static \&#10;--enable-libmp3lame \&#10;--enable-nonfree">
+               scriptText = "$PROJECT_DIR/configure --disable-optimizations --prefix=&quot;$PROJECT_DIR&quot; \&#10;--extra-cflags=&quot;-g -I$PROJECT_DIR/include&quot; --extra-ldflags=&quot;-L$PROJECT_DIR/lib&quot; \&#10;--bindir=&quot;$PROJECT_DIR/bin&quot; --extra-libs=&quot;-lmp3lame&quot; --enable-gpl --enable-shared --enable-static \&#10;--enable-libmp3lame \&#10;--enable-nonfree --disable-v4l2_m2m">
             </ActionContent>
          </ExecutionAction>
       </PreActions>
@@ -35,6 +35,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
       </Testables>
@@ -45,6 +46,7 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      language = ""
       launchStyle = "0"
       useCustomWorkingDirectory = "YES"
       customWorkingDirectory = "/Users/Dmytro_Humeniuk/workspace/ffmpeg"
