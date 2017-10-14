@@ -97,48 +97,9 @@ static av_cold void uninit(AVFilterContext *ctx)
         fclose(dump_fp);
     }
 
-    av_freep(dumpwave->values);
+    //av_freep(dumpwave->values);
 //    av_freep(dumpwave->str);
 }
-
-static int query_formats(AVFilterContext *ctx)
-{
-    AVFilterFormats *formats = NULL;
-    AVFilterChannelLayouts *layouts = NULL;
-    AVFilterLink *inlink = ctx->inputs[0];
-    AVFilterLink *outlink = ctx->outputs[0];
-    static const enum AVSampleFormat sample_fmts[] = { AV_SAMPLE_FMT_S16 };
-    int ret;
-
-    /* set input audio formats */
-    formats = ff_make_format_list(sample_fmts);
-    if ((ret = ff_formats_ref(formats, &inlink->out_formats)) < 0)
-        return ret;
-
-    layouts = ff_all_channel_layouts();
-    if ((ret = ff_channel_layouts_ref(layouts, &inlink->out_channel_layouts)) < 0)
-        return ret;
-
-    formats = ff_all_samplerates();
-    if ((ret = ff_formats_ref(formats, &inlink->out_samplerates)) < 0)
-        return ret;
-
-    /* set output audio format */
-    formats = ff_make_format_list(sample_fmts);
-    if ((ret = ff_formats_ref(formats, &outlink->in_formats)) < 0)
-        return ret;
-    
-    layouts = ff_all_channel_layouts();
-    if ((ret = ff_channel_layouts_ref(layouts, &outlink->in_channel_layouts)) < 0)
-        return ret;
-    
-    formats = ff_all_samplerates();
-    if ((ret = ff_formats_ref(formats, &outlink->in_samplerates)) < 0)
-        return ret;
-
-    return 0;
-}
-
 
 static int dumpwave_request_frame(AVFilterLink *outlink)
 {
@@ -252,7 +213,6 @@ AVFilter ff_af_dumpwave = {
     .description   = NULL_IF_CONFIG_SMALL("Convert input audio to a video output single picture."),
     .init          = init,
     .uninit        = uninit,
-    .query_formats = query_formats,
     .priv_size     = sizeof(DumpWaveContext),
     .inputs        = dumpwave_inputs,
     .outputs       = dumpwave_outputs,
