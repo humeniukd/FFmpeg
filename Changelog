@@ -11,6 +11,7 @@ version <next>:
 - support mbedTLS based TLS
 - DNN inference interface
 - Reimplemented SRCNN filter using DNN inference interface
+- dumpwave filter
 
 
 version 4.0:
