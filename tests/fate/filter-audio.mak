@@ -114,6 +114,10 @@ fate-filter-dcshift: tests/data/asynth-44100-2.wav
 fate-filter-dcshift: SRC = $(TARGET_PATH)/tests/data/asynth-44100-2.wav
 fate-filter-dcshift: CMD = framecrc -i $(SRC) -frames:a 20 -af aresample,dcshift=shift=0.25:limitergain=0.05,aresample
 
+FATE_AFILTER-$(call FILTERDEMDECENCMUX, AWAVEFORM, WAV, PCM_S16LE, PCM_S16LE, WAV) += fate-filter-awaveform
+fate-filter-awaveform: SRC = $(TARGET_PATH)/tests/data/asynth-44100-2.wav
+fate-filter-awaveform: CMD = refcmp_awaveform $(SRC) 147 0.000010
+
 FATE_AFILTER-$(call FILTERDEMDECENCMUX, EARWAX, WAV, PCM_S16LE, PCM_S16LE, WAV) += fate-filter-earwax
 fate-filter-earwax: tests/data/asynth-44100-2.wav
 fate-filter-earwax: SRC = $(TARGET_PATH)/tests/data/asynth-44100-2.wav

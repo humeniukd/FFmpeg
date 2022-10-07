@@ -456,6 +456,15 @@ pixfmt_conversion(){
               $ENC_OPTS -f rawvideo -s 352x288 -pix_fmt yuv444p
 }
 
+refcmp_awaveform(){
+    src=$1
+    size=$2
+    fuzz=${3:-1}
+    ffmpeg $FLAGS $DEC_OPTS -auto_conversion_filters -i ${src} \
+    -af "awaveform=n=${size}:f=-" \
+    -f null /dev/null | tr ',.' '\n=' | awk -v ref=${ref} -v fuzz=${fuzz} -f ${base}/refcmp-metadata.awk -
+}
+
 video_filter(){
     filters=$1
     shift

@@ -4399,6 +4399,30 @@ Set window length in seconds used to split audio into segments of equal length.
 Default is 3 seconds.
 @end table
 
+@section awaveform
+Dump waveform data to a file.
+Calculates RMS (Root-Mean-Square) audio power in 0 to 1.0 floats.
+Audio looks just as in Audacity
+
+@table @option
+@item w, width
+Number of data values.
+The default value is @var{1800}
+
+@item n, nb_samples
+Samples count per value per channel
+
+@item f, file
+Path to a file ``-'' is a shorthand
+for standard output.
+@end table
+
+For example, to generate RMS evenlope for 44.1 kHz 6 seconds length audio
+with dimensions @var{1800x140}, samples count @code{44100*6/1800=147} and store it to @var{/tmp/out.csv}, you might use:
+@example
+dumpwave=w=1800:n=147:f=/tmp/out.csv
+@end example
+
 @section dynaudnorm
 Dynamic Audio Normalizer.
 
