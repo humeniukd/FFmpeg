@@ -100,6 +100,7 @@ extern const AVFilter ff_af_asuperstop;
 extern const AVFilter ff_af_atempo;
 extern const AVFilter ff_af_atilt;
 extern const AVFilter ff_af_atrim;
+extern const AVFilter ff_af_adumpwave;
 extern const AVFilter ff_af_axcorrelate;
 extern const AVFilter ff_af_azmq;
 extern const AVFilter ff_af_bandpass;
