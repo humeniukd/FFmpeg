@@ -92,8 +92,8 @@ typedef struct InputFile {
     int       nb_streams;
 } InputFile;
 
-const char program_name[] = "ffprobe";
-const int program_birth_year = 2007;
+const char program_name_ffprobe[] = "ffprobe";
+const int program_birth_year_ffprobe = 2007;
 
 static int do_bitexact = 0;
 static int do_count_frames = 0;
@@ -384,6 +384,58 @@ static void ffprobe_cleanup(int ret)
 #if HAVE_THREADS
     pthread_mutex_destroy(&log_mutex);
 #endif
+
+    do_bitexact = 0;
+    do_count_frames = 0;
+    do_count_packets = 0;
+    do_read_frames  = 0;
+    do_read_packets = 0;
+    do_show_chapters = 0;
+    do_show_error   = 0;
+    do_show_format  = 0;
+    do_show_frames  = 0;
+    do_show_packets = 0;
+    do_show_programs = 0;
+    do_show_streams = 0;
+    do_show_stream_disposition = 0;
+    do_show_data    = 0;
+    do_show_program_version  = 0;
+    do_show_library_versions = 0;
+    do_show_pixel_formats = 0;
+    do_show_pixel_format_flags = 0;
+    do_show_pixel_format_components = 0;
+    do_show_log = 0;
+    do_show_chapter_tags = 0;
+    do_show_format_tags = 0;
+    do_show_frame_tags = 0;
+    do_show_program_tags = 0;
+    do_show_stream_tags = 0;
+    do_show_packet_tags = 0;
+    show_value_unit              = 0;
+    use_value_prefix             = 0;
+    use_byte_value_binary_prefix = 0;
+    use_value_sexagesimal_format = 0;
+    show_private_data            = 1;
+    show_optional_fields = SHOW_OPTIONAL_FIELDS_AUTO;
+    print_format = NULL;
+    stream_specifier = NULL;
+    show_data_hash = NULL;
+    read_intervals = NULL;
+    read_intervals_nb = 0;
+    find_stream_info  = 1;
+    input_filename = NULL;
+    print_input_filename = NULL;
+    iformat = NULL;
+    output_filename = NULL;
+    hash = NULL;
+    nb_streams = 0;
+    nb_streams_packets = NULL;
+    nb_streams_frames = NULL;
+    selected_streams = NULL;
+    log_buffer = NULL;
+    log_buffer_size = 0;
+
+    av_log(NULL, AV_LOG_DEBUG, "FFprobe: Cleanup done.\n");
 }
 
 struct unit_value {
@@ -1898,14 +1950,12 @@ static void writer_register_all(void)
     writer_print_string(w, k, pbuf.str, 0);    \
 } while (0)
 
-#define print_list_fmt(k, f, n, m, ...) do {    \
+#define print_list_fmt(k, f, n, ...) do {       \
     av_bprint_clear(&pbuf);                     \
     for (int idx = 0; idx < n; idx++) {         \
-        for (int idx2 = 0; idx2 < m; idx2++) {  \
-            if (idx > 0 || idx2 > 0)            \
-                av_bprint_chars(&pbuf, ' ', 1); \
-            av_bprintf(&pbuf, f, __VA_ARGS__);  \
-        }                                       \
+        if (idx > 0)                            \
+            av_bprint_chars(&pbuf, ' ', 1);     \
+        av_bprintf(&pbuf, f, __VA_ARGS__);      \
     }                                           \
     writer_print_string(w, k, pbuf.str, 0);     \
 } while (0)
@@ -2016,7 +2066,7 @@ static void print_dovi_metadata(WriterContext *w, const AVDOVIMetadata *dovi)
             const AVDOVIReshapingCurve *curve = &mapping->curves[c];
             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_COMPONENT);
 
-            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, 1, curve->pivots[idx]);
+            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, curve->pivots[idx]);
 
             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_PIECE_LIST);
             for (int i = 0; i < curve->num_pivots - 1; i++) {
@@ -2028,7 +2078,7 @@ static void print_dovi_metadata(WriterContext *w, const AVDOVIMetadata *dovi)
                     print_str("mapping_idc_name",   "polynomial");
                     print_int("poly_order",         curve->poly_order[i]);
                     print_list_fmt("poly_coef", "%"PRIi64,
-                                   curve->poly_order[i] + 1, 1,
+                                   curve->poly_order[i] + 1,
                                    curve->poly_coef[i][idx]);
                     break;
                 case AV_DOVI_MAPPING_MMR:
@@ -2036,8 +2086,8 @@ static void print_dovi_metadata(WriterContext *w, const AVDOVIMetadata *dovi)
                     print_int("mmr_order",          curve->mmr_order[i]);
                     print_int("mmr_constant",       curve->mmr_constant[i]);
                     print_list_fmt("mmr_coef", "%"PRIi64,
-                                   curve->mmr_order[i], 7,
-                                   curve->mmr_coef[i][idx][idx2]);
+                                   curve->mmr_order[i] * 7,
+                                   curve->mmr_coef[i][0][idx]);
                     break;
                 default:
                     print_str("mapping_idc_name",   "unknown");
@@ -2075,15 +2125,15 @@ static void print_dovi_metadata(WriterContext *w, const AVDOVIMetadata *dovi)
         print_int("dm_metadata_id",         color->dm_metadata_id);
         print_int("scene_refresh_flag",     color->scene_refresh_flag);
         print_list_fmt("ycc_to_rgb_matrix", "%d/%d",
-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix), 1,
+                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix),
                        color->ycc_to_rgb_matrix[idx].num,
                        color->ycc_to_rgb_matrix[idx].den);
         print_list_fmt("ycc_to_rgb_offset", "%d/%d",
-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset), 1,
+                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset),
                        color->ycc_to_rgb_offset[idx].num,
                        color->ycc_to_rgb_offset[idx].den);
         print_list_fmt("rgb_to_lms_matrix", "%d/%d",
-                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix), 1,
+                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix),
                        color->rgb_to_lms_matrix[idx].num,
                        color->rgb_to_lms_matrix[idx].den);
         print_int("signal_eotf",            color->signal_eotf);
@@ -3521,7 +3571,7 @@ end:
 static void show_usage(void)
 {
     av_log(NULL, AV_LOG_INFO, "Simple multimedia streams analyzer\n");
-    av_log(NULL, AV_LOG_INFO, "usage: %s [OPTIONS] INPUT_FILE\n", program_name);
+    av_log(NULL, AV_LOG_INFO, "usage: %s [OPTIONS] INPUT_FILE\n", program_name_ffprobe);
     av_log(NULL, AV_LOG_INFO, "\n");
 }
 
@@ -3533,7 +3583,7 @@ static void ffprobe_show_program_version(WriterContext *w)
     writer_print_section_header(w, SECTION_ID_PROGRAM_VERSION);
     print_str("version", FFMPEG_VERSION);
     print_fmt("copyright", "Copyright (c) %d-%d the FFmpeg developers",
-              program_birth_year, CONFIG_THIS_YEAR);
+              program_birth_year_ffprobe, CONFIG_THIS_YEAR);
     print_str("compiler_ident", CC_IDENT);
     print_str("configuration", FFMPEG_CONFIGURATION);
     writer_print_section_footer(w);
@@ -3770,7 +3820,7 @@ static int opt_print_filename(void *optctx, const char *opt, const char *arg)
     return 0;
 }
 
-void show_help_default(const char *opt, const char *arg)
+void show_help_default_ffprobe(const char *opt, const char *arg)
 {
     av_log_set_callback(log_callback_help);
     show_usage();
@@ -4050,7 +4100,7 @@ static inline int check_section_show_entries(int section_id)
             do_show_##varname = 1;                                      \
     } while (0)
 
-int main(int argc, char **argv)
+int ffprobe(int argc, char **argv)
 {
     const Writer *w;
     WriterContext *wctx;
@@ -4067,6 +4117,7 @@ int main(int argc, char **argv)
     }
 #endif
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
+    ffprobe_cleanup(0);
     register_exit(ffprobe_cleanup);
 
     options = real_options;
@@ -4172,7 +4223,7 @@ int main(int argc, char **argv)
              (!do_show_program_version && !do_show_library_versions && !do_show_pixel_formats))) {
             show_usage();
             av_log(NULL, AV_LOG_ERROR, "You have to specify one input file.\n");
-            av_log(NULL, AV_LOG_ERROR, "Use -h to get full help or, even better, run 'man %s'.\n", program_name);
+            av_log(NULL, AV_LOG_ERROR, "Use -h to get full help or, even better, run 'man %s'.\n", program_name_ffprobe);
             ret = AVERROR(EINVAL);
         } else if (input_filename) {
             ret = probe_file(wctx, input_filename, print_input_filename);
