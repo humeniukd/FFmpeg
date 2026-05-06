@@ -762,6 +762,8 @@ extern int copy_unknown_streams;
 
 extern int recast_media;
 
+int ffmpeg(int argc, char **argv);
+
 #if FFMPEG_OPT_PSNR
 extern int do_psnr;
 #endif

@@ -4207,7 +4207,7 @@ static void init_globals(void) {
  * One example is that when using multi-threading, a proxy_main() function
  * might be used instead of main().
  */
-int main(int argc, char **argv)
+int ffmpeg(int argc, char **argv)
 {
     init_globals();
     int ret;

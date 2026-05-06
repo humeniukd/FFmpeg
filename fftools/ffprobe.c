@@ -92,6 +92,8 @@ typedef struct InputFile {
     int       nb_streams;
 } InputFile;
 
+int ffprobe(int argc, char **argv);
+
 const char program_name_ffprobe[] = "ffprobe";
 const int program_birth_year_ffprobe = 2007;
 
