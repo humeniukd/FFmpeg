@@ -1,0 +1,578 @@
+Subject: [PATCH] wasm
+---
+Index: fftools/ffmpeg_opt.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/ffmpeg_opt.c b/fftools/ffmpeg_opt.c
+--- a/fftools/ffmpeg_opt.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/ffmpeg_opt.c	(date 1777896173451)
+@@ -898,11 +898,8 @@
+         MATCH_PER_STREAM_OPT(codec_tags, str, codec_tag, ic, st);
+         if (codec_tag) {
+             uint32_t tag = strtol(codec_tag, &next, 0);
+-            if (*next) {
+-                uint8_t buf[4] = { 0 };
+-                memcpy(buf, codec_tag, FFMIN(sizeof(buf), strlen(codec_tag)));
+-                tag = AV_RL32(buf);
+-            }
++            if (*next)
++                tag = AV_RL32(codec_tag);
+             st->codecpar->codec_tag = tag;
+         }
+ 
+@@ -1663,11 +1660,8 @@
+     MATCH_PER_STREAM_OPT(codec_tags, str, codec_tag, oc, st);
+     if (codec_tag) {
+         uint32_t tag = strtol(codec_tag, &next, 0);
+-        if (*next) {
+-            uint8_t buf[4] = { 0 };
+-            memcpy(buf, codec_tag, FFMIN(sizeof(buf), strlen(codec_tag)));
+-            tag = AV_RL32(buf);
+-        }
++        if (*next)
++            tag = AV_RL32(codec_tag);
+         ost->st->codecpar->codec_tag =
+         ost->enc_ctx->codec_tag = tag;
+     }
+@@ -2054,7 +2048,6 @@
+         int channels = 0;
+         char *layout = NULL;
+         char *sample_fmt = NULL;
+-        const char *apad = NULL;
+ 
+         MATCH_PER_STREAM_OPT(audio_channels, i, channels, oc, st);
+         if (channels) {
+@@ -2092,12 +2085,8 @@
+ 
+         MATCH_PER_STREAM_OPT(audio_sample_rate, i, audio_enc->sample_rate, oc, st);
+ 
+-        MATCH_PER_STREAM_OPT(apad, str, apad, oc, st);
+-        if (apad) {
+-            ost->apad = av_strdup(apad);
+-            if (!ost->apad)
+-                exit_program(1);
+-        }
++        MATCH_PER_STREAM_OPT(apad, str, ost->apad, oc, st);
++        ost->apad = av_strdup(ost->apad);
+ 
+         ost->avfilter = get_ost_filters(o, oc, ost);
+         if (!ost->avfilter)
+Index: fftools/ffprobe.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/ffprobe.c b/fftools/ffprobe.c
+--- a/fftools/ffprobe.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/ffprobe.c	(date 1777896173452)
+@@ -90,8 +90,8 @@
+     int       nb_streams;
+ } InputFile;
+ 
+-const char program_name[] = "ffprobe";
+-const int program_birth_year = 2007;
++const char program_name_ffprobe[] = "ffprobe";
++const int program_birth_year_ffprobe = 2007;
+ 
+ static int do_bitexact = 0;
+ static int do_count_frames = 0;
+@@ -382,6 +382,58 @@
+ #if HAVE_THREADS
+     pthread_mutex_destroy(&log_mutex);
+ #endif
++
++    do_bitexact = 0;
++    do_count_frames = 0;
++    do_count_packets = 0;
++    do_read_frames  = 0;
++    do_read_packets = 0;
++    do_show_chapters = 0;
++    do_show_error   = 0;
++    do_show_format  = 0;
++    do_show_frames  = 0;
++    do_show_packets = 0;
++    do_show_programs = 0;
++    do_show_streams = 0;
++    do_show_stream_disposition = 0;
++    do_show_data    = 0;
++    do_show_program_version  = 0;
++    do_show_library_versions = 0;
++    do_show_pixel_formats = 0;
++    do_show_pixel_format_flags = 0;
++    do_show_pixel_format_components = 0;
++    do_show_log = 0;
++    do_show_chapter_tags = 0;
++    do_show_format_tags = 0;
++    do_show_frame_tags = 0;
++    do_show_program_tags = 0;
++    do_show_stream_tags = 0;
++    do_show_packet_tags = 0;
++    show_value_unit              = 0;
++    use_value_prefix             = 0;
++    use_byte_value_binary_prefix = 0;
++    use_value_sexagesimal_format = 0;
++    show_private_data            = 1;
++    show_optional_fields = SHOW_OPTIONAL_FIELDS_AUTO;
++    print_format = NULL;
++    stream_specifier = NULL;
++    show_data_hash = NULL;
++    read_intervals = NULL;
++    read_intervals_nb = 0;
++    find_stream_info  = 1;
++    input_filename = NULL;
++    print_input_filename = NULL;
++    iformat = NULL;
++    output_filename = NULL;
++    hash = NULL;
++    nb_streams = 0;
++    nb_streams_packets = NULL;
++    nb_streams_frames = NULL;
++    selected_streams = NULL;
++    log_buffer = NULL;
++    log_buffer_size = 0;
++
++    av_log(NULL, AV_LOG_DEBUG, "FFprobe: Cleanup done.\n");
+ }
+ 
+ struct unit_value {
+@@ -1896,14 +1948,12 @@
+     writer_print_string(w, k, pbuf.str, 0);    \
+ } while (0)
+ 
+-#define print_list_fmt(k, f, n, m, ...) do {    \
++#define print_list_fmt(k, f, n, ...) do {       \
+     av_bprint_clear(&pbuf);                     \
+     for (int idx = 0; idx < n; idx++) {         \
+-        for (int idx2 = 0; idx2 < m; idx2++) {  \
+-            if (idx > 0 || idx2 > 0)            \
+-                av_bprint_chars(&pbuf, ' ', 1); \
+-            av_bprintf(&pbuf, f, __VA_ARGS__);  \
+-        }                                       \
++        if (idx > 0)                            \
++            av_bprint_chars(&pbuf, ' ', 1);     \
++        av_bprintf(&pbuf, f, __VA_ARGS__);      \
+     }                                           \
+     writer_print_string(w, k, pbuf.str, 0);     \
+ } while (0)
+@@ -2014,7 +2064,7 @@
+             const AVDOVIReshapingCurve *curve = &mapping->curves[c];
+             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_COMPONENT);
+ 
+-            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, 1, curve->pivots[idx]);
++            print_list_fmt("pivots", "%"PRIu16, curve->num_pivots, curve->pivots[idx]);
+ 
+             writer_print_section_header(w, SECTION_ID_FRAME_SIDE_DATA_PIECE_LIST);
+             for (int i = 0; i < curve->num_pivots - 1; i++) {
+@@ -2026,7 +2076,7 @@
+                     print_str("mapping_idc_name",   "polynomial");
+                     print_int("poly_order",         curve->poly_order[i]);
+                     print_list_fmt("poly_coef", "%"PRIi64,
+-                                   curve->poly_order[i] + 1, 1,
++                                   curve->poly_order[i] + 1,
+                                    curve->poly_coef[i][idx]);
+                     break;
+                 case AV_DOVI_MAPPING_MMR:
+@@ -2034,8 +2084,8 @@
+                     print_int("mmr_order",          curve->mmr_order[i]);
+                     print_int("mmr_constant",       curve->mmr_constant[i]);
+                     print_list_fmt("mmr_coef", "%"PRIi64,
+-                                   curve->mmr_order[i], 7,
+-                                   curve->mmr_coef[i][idx][idx2]);
++                                   curve->mmr_order[i] * 7,
++                                   curve->mmr_coef[i][0][idx]);
+                     break;
+                 default:
+                     print_str("mapping_idc_name",   "unknown");
+@@ -2073,15 +2123,15 @@
+         print_int("dm_metadata_id",         color->dm_metadata_id);
+         print_int("scene_refresh_flag",     color->scene_refresh_flag);
+         print_list_fmt("ycc_to_rgb_matrix", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix), 1,
++                       FF_ARRAY_ELEMS(color->ycc_to_rgb_matrix),
+                        color->ycc_to_rgb_matrix[idx].num,
+                        color->ycc_to_rgb_matrix[idx].den);
+         print_list_fmt("ycc_to_rgb_offset", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset), 1,
++                       FF_ARRAY_ELEMS(color->ycc_to_rgb_offset),
+                        color->ycc_to_rgb_offset[idx].num,
+                        color->ycc_to_rgb_offset[idx].den);
+         print_list_fmt("rgb_to_lms_matrix", "%d/%d",
+-                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix), 1,
++                       FF_ARRAY_ELEMS(color->rgb_to_lms_matrix),
+                        color->rgb_to_lms_matrix[idx].num,
+                        color->rgb_to_lms_matrix[idx].den);
+         print_int("signal_eotf",            color->signal_eotf);
+@@ -3493,7 +3543,7 @@
+ static void show_usage(void)
+ {
+     av_log(NULL, AV_LOG_INFO, "Simple multimedia streams analyzer\n");
+-    av_log(NULL, AV_LOG_INFO, "usage: %s [OPTIONS] INPUT_FILE\n", program_name);
++    av_log(NULL, AV_LOG_INFO, "usage: %s [OPTIONS] INPUT_FILE\n", program_name_ffprobe);
+     av_log(NULL, AV_LOG_INFO, "\n");
+ }
+ 
+@@ -3505,7 +3555,7 @@
+     writer_print_section_header(w, SECTION_ID_PROGRAM_VERSION);
+     print_str("version", FFMPEG_VERSION);
+     print_fmt("copyright", "Copyright (c) %d-%d the FFmpeg developers",
+-              program_birth_year, CONFIG_THIS_YEAR);
++              program_birth_year_ffprobe, CONFIG_THIS_YEAR);
+     print_str("compiler_ident", CC_IDENT);
+     print_str("configuration", FFMPEG_CONFIGURATION);
+     writer_print_section_footer(w);
+@@ -3742,7 +3792,7 @@
+     return 0;
+ }
+ 
+-void show_help_default(const char *opt, const char *arg)
++void show_help_default_ffprobe(const char *opt, const char *arg)
+ {
+     av_log_set_callback(log_callback_help);
+     show_usage();
+@@ -4022,7 +4072,7 @@
+             do_show_##varname = 1;                                      \
+     } while (0)
+ 
+-int main(int argc, char **argv)
++int ffprobe(int argc, char **argv)
+ {
+     const Writer *w;
+     WriterContext *wctx;
+@@ -4039,6 +4089,7 @@
+     }
+ #endif
+     av_log_set_flags(AV_LOG_SKIP_REPEATED);
++    ffprobe_cleanup(0);
+     register_exit(ffprobe_cleanup);
+ 
+     options = real_options;
+@@ -4144,7 +4195,7 @@
+              (!do_show_program_version && !do_show_library_versions && !do_show_pixel_formats))) {
+             show_usage();
+             av_log(NULL, AV_LOG_ERROR, "You have to specify one input file.\n");
+-            av_log(NULL, AV_LOG_ERROR, "Use -h to get full help or, even better, run 'man %s'.\n", program_name);
++            av_log(NULL, AV_LOG_ERROR, "Use -h to get full help or, even better, run 'man %s'.\n", program_name_ffprobe);
+             ret = AVERROR(EINVAL);
+         } else if (input_filename) {
+             ret = probe_file(wctx, input_filename, print_input_filename);
+Index: fftools/ffplay.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/ffplay.c b/fftools/ffplay.c
+--- a/fftools/ffplay.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/ffplay.c	(date 1777896173452)
+@@ -1992,8 +1992,6 @@
+         goto end;
+ 
+     if (force_output_format) {
+-        av_bprint_clear(&bp);
+-        av_channel_layout_describe_bprint(&is->audio_tgt.ch_layout, &bp);
+         sample_rates   [0] = is->audio_tgt.freq;
+         if ((ret = av_opt_set_int(filt_asink, "all_channel_counts", 0, AV_OPT_SEARCH_CHILDREN)) < 0)
+             goto end;
+@@ -2358,13 +2356,12 @@
+         av_channel_layout_compare(&af->frame->ch_layout, &is->audio_src.ch_layout) ||
+         af->frame->sample_rate   != is->audio_src.freq           ||
+         (wanted_nb_samples       != af->frame->nb_samples && !is->swr_ctx)) {
+-        int ret;
+         swr_free(&is->swr_ctx);
+-        ret = swr_alloc_set_opts2(&is->swr_ctx,
++        swr_alloc_set_opts2(&is->swr_ctx,
+                             &is->audio_tgt.ch_layout, is->audio_tgt.fmt, is->audio_tgt.freq,
+                             &af->frame->ch_layout, af->frame->format, af->frame->sample_rate,
+                             0, NULL);
+-        if (ret < 0 || swr_init(is->swr_ctx) < 0) {
++        if (!is->swr_ctx || swr_init(is->swr_ctx) < 0) {
+             av_log(NULL, AV_LOG_ERROR,
+                    "Cannot create sample rate converter for conversion of %d Hz %s %d channels to %d Hz %s %d channels!\n",
+                     af->frame->sample_rate, av_get_sample_fmt_name(af->frame->format), af->frame->ch_layout.nb_channels,
+@@ -3658,7 +3655,7 @@
+ }
+ 
+ /* Called from the main */
+-int main(int argc, char **argv)
++int ffplay(int argc, char **argv)
+ {
+     int flags;
+     VideoState *is;
+Index: fftools/ffmpeg.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/ffmpeg.c b/fftools/ffmpeg.c
+--- a/fftools/ffmpeg.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/ffmpeg.c	(date 1777896173450)
+@@ -32,6 +32,7 @@
+ #include <limits.h>
+ #include <stdatomic.h>
+ #include <stdint.h>
++#include <emscripten.h>
+ 
+ #if HAVE_IO_H
+ #include <io.h>
+@@ -491,9 +492,8 @@
+         }
+         //Read it
+         if(nchars != 0) {
+-            if (read(0, &ch, 1) == 1)
+-                return ch;
+-            return 0;
++            read(0, &ch, 1);
++            return ch;
+         }else{
+             return -1;
+         }
+@@ -1279,9 +1279,6 @@
+             av_log(NULL, AV_LOG_DEBUG, "Forced keyframe at time %f\n", pts_time);
+         }
+ 
+-        if (ost->top_field_first >= 0)
+-            in_picture->top_field_first = !!ost->top_field_first;
+-
+         ret = encode_frame(of, ost, in_picture);
+         if (ret < 0)
+             exit_program(1);
+@@ -1508,6 +1505,10 @@
+     }
+ }
+ 
++EM_JS(void, send_progress, (double progress, double time), {
++    Module.receiveProgress(progress, time);
++});
++
+ static void print_report(int is_last_report, int64_t timer_start, int64_t cur_time)
+ {
+     AVBPrint buf, buf_script;
+@@ -1633,6 +1634,24 @@
+             nb_frames_drop += ost->last_dropped;
+     }
+ 
++    /* send_progress here only works when the duration of
++     * input and output file are the same, other cases (ex. trim)
++     * still WIP.
++     *
++     * TODO: support cases like trim.
++     */
++    int64_t duration = -1;
++    int64_t pts_abs = FFABS(pts);
++    /* Use the longest duration among all input files.
++     */
++    for (int i = 0; i < nb_input_files; i++) {
++      int64_t file_duration = input_files[i]->ctx->duration;
++      if (file_duration > duration) {
++        duration = file_duration;
++      }
++    }
++    send_progress((double)pts_abs / (double)duration, (double)pts_abs);
++
+     secs = FFABS(pts) / AV_TIME_BASE;
+     us = FFABS(pts) % AV_TIME_BASE;
+     mins = secs / 60;
+@@ -1688,7 +1707,8 @@
+     }
+ 
+     if (print_stats || is_last_report) {
+-        const char end = is_last_report ? '\n' : '\r';
++        // Always print a new line of message.
++        const char end = '\n'; //is_last_report ? '\n' : '\r';
+         if (print_stats==1 && AV_LOG_INFO > av_log_get_level()) {
+             fprintf(stderr, "%s    %c", buf.str, end);
+         } else
+@@ -1714,8 +1734,11 @@
+ 
+     first_report = 0;
+ 
+-    if (is_last_report)
+-        print_final_stats(total_size);
++    if (is_last_report) {
++      // Make sure the progress is ended with 1.
++      if (pts_abs != duration) send_progress(1, (double)pts_abs);
++      print_final_stats(total_size);
++    }
+ }
+ 
+ static int ifilter_parameters_from_codecpar(InputFilter *ifilter, AVCodecParameters *par)
+@@ -4325,6 +4348,16 @@
+     return reap_filters(0);
+ }
+ 
++/* is_timeout checks if transcode() is running longer
++ * than a timeout value, return 1 when timeout.
++ */
++EM_JS(int, is_timeout, (int64_t diff), {
++    if (Module.timeout === -1) return 0;
++    else {
++      return Module.timeout <= diff;
++    }
++});
++
+ /*
+  * The following code is the main loop of the file converter
+  */
+@@ -4355,6 +4388,8 @@
+     while (!received_sigterm) {
+         int64_t cur_time= av_gettime_relative();
+ 
++        if (is_timeout((cur_time - timer_start) / 1000) == 1) exit_program(1);
++
+         /* if 'q' pressed, exits */
+         if (stdin_interaction)
+             if (check_keyboard_interaction(cur_time) < 0)
+@@ -4517,8 +4552,55 @@
+ #endif
+ }
+ 
+-int main(int argc, char **argv)
++/* init_globals initializes global variables to enable multiple
++ * calls of ffmpeg().
++ *
++ * This is not required in the original command line version as
++ * the global varialbes are always re-initialized when calling
++ * main() function.
++ */
++void init_globals() {
++  nb_frames_dup = 0;
++  dup_warning = 1000;
++  nb_frames_drop = 0;
++  nb_output_dumped = 0;
++  want_sdp = 1;
++
++  progress_avio = NULL;
++
++  input_streams = NULL;
++  nb_input_streams = 0;
++  input_files = NULL;
++  nb_input_files = 0;
++
++  output_streams = NULL;
++  nb_output_streams = 0;
++  output_files = NULL;
++  nb_output_files = 0;
++
++  filtergraphs = NULL;
++  nb_filtergraphs = 0;
++
++  received_sigterm = 0;
++  received_nb_signals = 0;
++  transcode_init_done = ATOMIC_VAR_INIT(0);
++  ffmpeg_exited = 0;
++  main_return_code = 0;
++  copy_ts_first_pts = AV_NOPTS_VALUE;
++}
++
++/* ffmpeg() is simply a rename of main(), but it makes things easier to
++ * control as main() is a special function name that might trigger
++ * some hidden mechanisms.
++ *
++ * One example is that when using multi-threading, a proxy_main() function
++ * might be used instead of main().
++ */
++int ffmpeg(int argc, char **argv)
++// int main(int argc, char **argv)
+ {
++    init_globals();
++
+     int i, ret;
+     BenchmarkTimeStamps ti;
+ 
+Index: fftools/opt_common.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/opt_common.c b/fftools/opt_common.c
+--- a/fftools/opt_common.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/opt_common.c	(date 1777896173453)
+@@ -722,13 +722,10 @@
+     return 0;
+ }
+ 
+-static int print_codecs(int encoder)
++static void print_codecs(int encoder)
+ {
+     const AVCodecDescriptor **codecs;
+-    int i, nb_codecs = get_codecs_sorted(&codecs);
+-
+-    if (nb_codecs < 0)
+-        return nb_codecs;
++    unsigned i, nb_codecs = get_codecs_sorted(&codecs);
+ 
+     printf("%s:\n"
+            " V..... = Video\n"
+@@ -762,17 +759,18 @@
+         }
+     }
+     av_free(codecs);
+-    return 0;
+ }
+ 
+ int show_decoders(void *optctx, const char *opt, const char *arg)
+ {
+-    return print_codecs(0);
++    print_codecs(0);
++    return 0;
+ }
+ 
+ int show_encoders(void *optctx, const char *opt, const char *arg)
+ {
+-    return print_codecs(1);
++    print_codecs(1);
++    return 0;
+ }
+ 
+ int show_bsfs(void *optctx, const char *opt, const char *arg)
+Index: fftools/cmdutils.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/fftools/cmdutils.c b/fftools/cmdutils.c
+--- a/fftools/cmdutils.c	(revision f91d6fe195a17d781555fcac5d2ffcb5ee39ed85)
++++ b/fftools/cmdutils.c	(date 1777896173448)
+@@ -24,6 +24,7 @@
+ #include <stdlib.h>
+ #include <errno.h>
+ #include <math.h>
++#include <emscripten.h>
+ 
+ /* Include only the enabled headers since some compilers (namely, Sun
+    Studio) will not omit unused inline functions and create undefined
+@@ -95,7 +96,23 @@
+     if (program_exit)
+         program_exit(ret);
+ 
+-    exit(ret);
++    /*
++     * abort() is used instead of exit() because exit() not only
++     * terminates ffmpeg but also the whole node.js program, which 
++     * is not ideal.
++     *
++     * abort() terminiates the ffmpeg with an JS exception
++     *
++     *   RuntimeError: Aborted...
++     *
++     * This excpetion is catch and not visible to users.
++     *
++     */
++    EM_ASM({
++        Module.ret = $0;
++    }, ret);
++    abort();
++    // exit(ret);
+ }
+ 
+ double parse_number_or_die(const char *context, const char *numstr, int type,
+@@ -506,7 +523,7 @@
+     return o;
+ }
+ 
+-#define FLAGS ((o->type == AV_OPT_TYPE_FLAGS && (arg[0]=='-' || arg[0]=='+')) ? AV_DICT_APPEND : 0)
++#define FLAGS (o->type == AV_OPT_TYPE_FLAGS && (arg[0]=='-' || arg[0]=='+')) ? AV_DICT_APPEND : 0
+ int opt_default(void *optctx, const char *opt, const char *arg)
+ {
+     const AVOption *o;
