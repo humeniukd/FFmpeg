@@ -93,6 +93,7 @@ typedef struct InputFile {
 } InputFile;
 
 int ffprobe(int argc, char **argv);
+void show_help_default_ffprobe(const char *opt, const char *arg);
 
 const char program_name_ffprobe[] = "ffprobe";
 const int program_birth_year_ffprobe = 2007;
