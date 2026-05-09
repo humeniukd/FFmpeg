@@ -38,6 +38,7 @@ extern const FFFilter ff_af_adelay;
 extern const FFFilter ff_af_adenorm;
 extern const FFFilter ff_af_aderivative;
 extern const FFFilter ff_af_adrc;
+extern const FFFilter ff_af_adumpwave;
 extern const FFFilter ff_af_adynamicequalizer;
 extern const FFFilter ff_af_adynamicsmooth;
 extern const FFFilter ff_af_aecho;
